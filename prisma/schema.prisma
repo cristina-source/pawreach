@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// === AUTH (NextAuth v5) ===
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(USER)
+  senderName    String?
+  replyTo       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  accounts     Account[]
+  sessions     Session[]
+  auditLogs    AuditLog[]
+  contacts     Contact[]
+  segments     Segment[]
+  campaigns    Campaign[]
+  automations  Automation[]
+  emailLogs    EmailLog[]
+  aiTemplates  AiTemplate[]
+  subscription Subscription?
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model AllowedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+  USER
+}
+
+// === SUBSCRIPTION ===
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  stripeCustomerId       String?            @unique
+  stripeSubscriptionId   String?            @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  status                 SubscriptionStatus @default(FREE)
+  plan                   Plan               @default(FREE)
+  aiGenerationsUsed      Int                @default(0)
+  aiGenerationsResetAt   DateTime           @default(now())
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+enum Plan {
+  FREE
+  SOLO
+  GROWTH
+}
+
+// === CONTACTOS (CRM) ===
+model Contact {
+  id            String      @id @default(cuid())
+  userId        String
+  nome          String
+  email         String
+  telefone      String?
+  tipoNegocio   TipoNegocio
+  cidade        String?
+  regiao        String?
+  estadoLead    EstadoLead  @default(FRIO)
+  fonteContato  String?
+  tags          String[]
+  notas         String?
+  consentimento Boolean     @default(false)
+  unsubscribed  Boolean     @default(false)
+  unsubscribedAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segmentContacts       SegmentContact[]
+  emailLogs             EmailLog[]
+  automationEnrollments AutomationEnrollment[]
+
+  @@unique([userId, email])
+  @@index([userId, tipoNegocio])
+  @@index([userId, estadoLead])
+  @@index([userId, deletedAt])
+}
+
+enum TipoNegocio {
+  PET_SHOP
+  GROOMING
+  CLINICA_VET
+  HOTEL_PETS
+  ADESTRADOR
+  PET_SITTER
+  LOJA_ONLINE
+  OUTROS
+}
+
+enum EstadoLead {
+  FRIO
+  MORNO
+  QUENTE
+  CLIENTE
+}
+
+// === SEGMENTOS ===
+model Segment {
+  id        String      @id @default(cuid())
+  userId    String
+  nome      String
+  descricao String?
+  tipo      SegmentType @default(ESTATICO)
+  filtros   Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segmentContacts SegmentContact[]
+  campaigns       Campaign[]
+  automations     Automation[]
+
+  @@index([userId, deletedAt])
+}
+
+enum SegmentType {
+  ESTATICO
+  DINAMICO
+}
+
+model SegmentContact {
+  segmentId String
+  contactId String
+  addedAt   DateTime @default(now())
+
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([segmentId, contactId])
+}
+
+// === CAMPANHAS ===
+model Campaign {
+  id            String         @id @default(cuid())
+  userId        String
+  nome          String
+  assunto       String
+  preheader     String?
+  conteudoHtml  String         @db.Text
+  conteudoText  String?        @db.Text
+  segmentId     String?
+  status        CampaignStatus @default(RASCUNHO)
+  agendadoPara  DateTime?
+  enviadoEm     DateTime?
+  testAbEnabled Boolean        @default(false)
+  assuntoB      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segment   Segment?       @relation(fields: [segmentId], references: [id])
+  emailLogs EmailLog[]
+  stats     CampaignStats?
+
+  @@index([userId, status])
+  @@index([userId, deletedAt])
+}
+
+enum CampaignStatus {
+  RASCUNHO
+  AGENDADA
+  A_ENVIAR
+  ENVIADA
+  CANCELADA
+}
+
+model CampaignStats {
+  id            String   @id @default(cuid())
+  campaignId    String   @unique
+  totalEnviados Int      @default(0)
+  totalAbertos  Int      @default(0)
+  totalCliques  Int      @default(0)
+  totalBounces  Int      @default(0)
+  totalUnsubs   Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+// === EMAIL LOGS ===
+model EmailLog {
+  id           String      @id @default(cuid())
+  userId       String
+  contactId    String
+  campaignId   String?
+  automationId String?
+  assunto      String
+  status       EmailStatus @default(ENVIADO)
+  resendId     String?
+  aberto       Boolean     @default(false)
+  abertoEm     DateTime?
+  clicado      Boolean     @default(false)
+  clicadoEm   DateTime?
+  bounce       Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+}
+
+enum EmailStatus {
+  ENVIADO
+  ENTREGUE
+  ABERTO
+  CLICADO
+  BOUNCE
+  SPAM
+  FALHOU
+}
+
+// === AUTOMAÇÕES ===
+model Automation {
+  id        String           @id @default(cuid())
+  userId    String
+  nome      String
+  descricao String?
+  segmentId String?
+  status    AutomationStatus @default(INATIVA)
+  nos       Json
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segment     Segment?               @relation(fields: [segmentId], references: [id])
+  enrollments AutomationEnrollment[]
+
+  @@index([userId, status])
+}
+
+enum AutomationStatus {
+  ATIVA
+  INATIVA
+  RASCUNHO
+}
+
+model AutomationEnrollment {
+  id           String           @id @default(cuid())
+  automationId String
+  contactId    String
+  noAtual      String
+  status       EnrollmentStatus @default(ATIVA)
+  proximoEnvio DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, contactId])
+}
+
+enum EnrollmentStatus {
+  ATIVA
+  PAUSADA
+  CONCLUIDA
+  CANCELADA
+}
+
+// === TEMPLATES IA ===
+model AiTemplate {
+  id        String    @id @default(cuid())
+  userId    String
+  nome      String
+  tipo      String
+  tom       String
+  objetivo  String
+  assunto   String
+  preheader String?
+  corpo     String    @db.Text
+  cta       String?
+  ps        String?
+  rating    Int?
+  geradoEm  DateTime  @default(now())
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt])
+}
+
+// === AUDIT LOG ===
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  acao       String
+  entidade   String
+  entidadeId String?
+  detalhes   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
