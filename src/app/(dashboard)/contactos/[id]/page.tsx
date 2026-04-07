@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import Link from "next/link"
 import { Mail, Phone, MapPin, Tag, FileText } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { DeleteContactButton } from "@/components/contactos/delete-contact-button"
 import { format } from "date-fns"
 import { pt } from "date-fns/locale"
 
@@ -85,29 +86,7 @@ export default async function ContactoDetailPage({ params }: Props) {
           >
             Editar
           </Link>
-          <form
-            action={async () => {
-              "use server"
-              const { auth: getAuth } = await import("@/lib/auth")
-              const { prisma: db } = await import("@/lib/prisma")
-              const sess = await getAuth()
-              if (!sess?.user) return
-              await db.contact.update({
-                where: { id, userId: sess.user.id },
-                data: { deletedAt: new Date() },
-              })
-              const { redirect: redir } = await import("next/navigation")
-              redir("/contactos")
-            }}
-          >
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg"
-              style={{ background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
-            >
-              Eliminar
-            </button>
-          </form>
+          <DeleteContactButton contactId={contacto.id} contactName={contacto.nome} />
         </div>
       </div>
 

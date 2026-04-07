@@ -38,8 +38,11 @@ export default function EditarCampanhaPage() {
             preheader: c.preheader ?? "",
             conteudoHtml: c.conteudoHtml ?? "",
           })
+        } else {
+          setError(d.error ?? "Campanha não encontrada.")
         }
       })
+      .catch(() => setError("Erro ao carregar campanha. Verifica a tua ligação."))
       .finally(() => setFetching(false))
   }, [id])
 

@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Papa from "papaparse"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, CheckCircle, AlertCircle } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 
 type ParsedRow = Record<string, string>
 
@@ -20,6 +21,7 @@ const TIPO_NEGOCIO_VALUES = [
 ]
 
 export function ImportCsv() {
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [rows, setRows] = useState<ParsedRow[]>([])
   const [headers, setHeaders] = useState<string[]>([])
@@ -108,6 +110,8 @@ export function ImportCsv() {
       const data = await res.json()
       if (data.success) {
         setResult({ imported: data.data.imported, errors: data.data.errors })
+        // Navegar para os contactos após 2.5s
+        setTimeout(() => router.push("/contactos"), 2500)
       } else {
         setError(data.error ?? "Erro ao importar.")
       }
@@ -186,12 +190,23 @@ export function ImportCsv() {
 
       {result && (
         <div
-          className="flex items-center gap-2 p-3 rounded-lg text-sm"
-          style={{ background: "rgba(16,185,129,0.1)", color: "var(--app-emerald)" }}
+          className="flex items-center justify-between gap-2 p-4 rounded-lg text-sm"
+          style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "var(--app-emerald)" }}
         >
-          <CheckCircle size={15} />
-          {result.imported} contactos importados com sucesso.
-          {result.errors > 0 && ` ${result.errors} linhas com erros foram ignoradas.`}
+          <div className="flex items-center gap-2">
+            <CheckCircle size={15} />
+            <span>
+              <strong>{result.imported}</strong> contactos importados com sucesso.
+              {result.errors > 0 && ` ${result.errors} linhas ignoradas.`}
+            </span>
+          </div>
+          <a
+            href="/contactos"
+            className="inline-flex items-center gap-1 font-semibold text-xs shrink-0"
+            style={{ color: "var(--app-emerald)", textDecoration: "none" }}
+          >
+            Ver contactos <ArrowRight size={12} />
+          </a>
         </div>
       )}
 

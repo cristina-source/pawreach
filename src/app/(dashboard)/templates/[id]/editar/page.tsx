@@ -45,8 +45,11 @@ export default function EditarTemplatePage() {
             cta: t.cta ?? "",
             ps: t.ps ?? "",
           })
+        } else {
+          setError(d.error ?? "Template não encontrado.")
         }
       })
+      .catch(() => setError("Erro ao carregar template. Verifica a tua ligação."))
       .finally(() => setFetching(false))
   }, [id])
 
@@ -85,6 +88,7 @@ export default function EditarTemplatePage() {
         throw new Error(data.error ?? "Erro ao actualizar template.")
       }
       toast("Template guardado com sucesso.")
+      router.push("/templates")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.")
     } finally {

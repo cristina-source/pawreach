@@ -59,8 +59,11 @@ export default function EditarContactoPage() {
             cidade: c.cidade ?? "",
             notas: c.notas ?? "",
           })
+        } else {
+          setError(d.error ?? "Contacto não encontrado.")
         }
       })
+      .catch(() => setError("Erro ao carregar contacto. Verifica a tua ligação."))
       .finally(() => setFetching(false))
   }, [id])
 
@@ -121,6 +124,33 @@ export default function EditarContactoPage() {
     return (
       <div style={{ padding: "40px 0", textAlign: "center", color: "var(--app-text-muted)", fontSize: "14px" }}>
         A carregar...
+      </div>
+    )
+  }
+
+  if (!fetching && error && !form.nome) {
+    return (
+      <div style={{ maxWidth: "640px", width: "100%" }}>
+        <Breadcrumb items={[{ label: "Contactos", href: "/contactos" }, { label: "Editar" }]} />
+        <div
+          style={{
+            marginTop: "24px",
+            padding: "16px 20px",
+            background: "var(--app-red-muted)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            borderRadius: "var(--radius-md)",
+            color: "var(--app-red)",
+            fontSize: "14px",
+          }}
+        >
+          {error}
+        </div>
+        <Link
+          href="/contactos"
+          style={{ display: "inline-flex", marginTop: "12px", fontSize: "14px", color: "var(--app-orange)", textDecoration: "none" }}
+        >
+          ← Voltar aos contactos
+        </Link>
       </div>
     )
   }
