@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Zap, Mail, Clock, GitBranch, Plus, X } from "lucide-react"
+import { Zap, Mail, Clock, GitBranch, Plus, X, Save, Check } from "lucide-react"
 
 type TipoNo = "trigger" | "email" | "delay" | "condicao"
 
@@ -42,6 +42,28 @@ const NO_LABELS: Record<TipoNo, string> = {
 export function AutomationCanvas({ nos, automacaoId }: AutomationCanvasProps) {
   const [localNos, setLocalNos] = useState<No[]>(nos)
   const [showAddPanel, setShowAddPanel] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+
+  async function guardarNos() {
+    if (!automacaoId) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/automacoes/${automacaoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nos: localNos }),
+      })
+      if (res.ok) {
+        setSaved(true)
+        setIsDirty(false)
+        setTimeout(() => setSaved(false), 2500)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   function addNo(tipo: TipoNo) {
     const defaults: Record<TipoNo, No> = {
@@ -51,6 +73,7 @@ export function AutomationCanvas({ nos, automacaoId }: AutomationCanvasProps) {
       condicao: { tipo: "condicao", titulo: "Condição", subtitulo: "Abriu email?" },
     }
     setLocalNos((prev) => [...prev, defaults[tipo]])
+    setIsDirty(true)
     setShowAddPanel(false)
   }
 
@@ -60,12 +83,25 @@ export function AutomationCanvas({ nos, automacaoId }: AutomationCanvasProps) {
         className="rounded-xl p-6 border"
         style={{ background: "var(--app-surface)", borderColor: "var(--app-border)" }}
       >
-        <h2
-          className="text-sm font-semibold mb-6"
-          style={{ color: "var(--app-text)", fontFamily: "Syne, sans-serif" }}
-        >
-          Fluxo da automação
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: "var(--app-text)", fontFamily: "Syne, sans-serif" }}
+          >
+            Fluxo da automação
+          </h2>
+          {automacaoId && isDirty && (
+            <Button
+              variant="primary"
+              size="sm"
+              loading={saving}
+              onClick={guardarNos}
+            >
+              {saved ? <Check size={14} /> : <Save size={14} />}
+              {saved ? "Guardado" : "Guardar fluxo"}
+            </Button>
+          )}
+        </div>
 
         {localNos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10">

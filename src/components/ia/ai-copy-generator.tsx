@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Wand2, Copy, Save, ArrowRight, Clock } from "lucide-react"
@@ -69,6 +70,7 @@ const selectStyle = {
 }
 
 export function AiCopyGenerator() {
+  const router = useRouter()
   const [tipoEmail, setTipoEmail] = useState(TIPOS_EMAIL[0])
   const [tipoNegocio, setTipoNegocio] = useState(PERFIS_DESTINATARIO[0])
   const [tom, setTom] = useState(TONS[0])
@@ -428,7 +430,7 @@ export function AiCopyGenerator() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.assign("/campanhas/nova")}
+                onClick={() => router.push("/campanhas/nova")}
               >
                 Usar em campanha
                 <ArrowRight size={14} />

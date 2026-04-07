@@ -27,11 +27,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        "bg-[#F97316] text-white hover:bg-[#ea6a0a] active:bg-[#dc6409]",
+        "bg-[--app-orange] text-white hover:bg-[--app-orange-hover] active:bg-[--app-orange-hover]",
       secondary:
-        "bg-[#334155] text-[#F8FAFC] hover:bg-[#475569] active:bg-[#3d4f65] border border-[#475569]",
+        "bg-[--app-surface-2] text-[--app-text] hover:bg-[--app-elevated] active:bg-[--app-elevated] border border-[--app-border-strong]",
       ghost:
-        "bg-transparent text-[#94A3B8] hover:bg-[#1E293B] hover:text-[#F8FAFC]",
+        "bg-transparent text-[--app-text-muted] hover:bg-[--app-surface-2] hover:text-[--app-text]",
       danger: "bg-[#EF4444] text-white hover:bg-[#dc2626] active:bg-[#b91c1c]",
     }
 

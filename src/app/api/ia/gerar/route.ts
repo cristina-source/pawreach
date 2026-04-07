@@ -36,6 +36,23 @@ export async function POST(request: NextRequest) {
 
   const plano = subscription?.plan ?? "FREE"
   const limites = PLANS[plano as keyof typeof PLANS].limites
+
+  // Verificar reset mensal do contador
+  const agora = new Date()
+  const resetAt = subscription?.aiGenerationsResetAt
+  const needsReset =
+    resetAt &&
+    (resetAt.getFullYear() < agora.getFullYear() ||
+      resetAt.getMonth() < agora.getMonth())
+
+  if (needsReset && subscription) {
+    await prisma.subscription.update({
+      where: { userId },
+      data: { aiGenerationsUsed: 0, aiGenerationsResetAt: agora },
+    })
+    subscription.aiGenerationsUsed = 0
+  }
+
   const usado = subscription?.aiGenerationsUsed ?? 0
 
   if (limites.geracoesIa !== -1) {

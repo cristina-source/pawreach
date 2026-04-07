@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { CampaignEditor } from "@/components/campanhas/campaign-editor"
@@ -26,6 +26,7 @@ const STEPS = ["Detalhes", "Destinatários", "Conteúdo", "Revisão"]
 
 export default function NovaCampanhaPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<Partial<FormData>>({
@@ -39,12 +40,31 @@ export default function NovaCampanhaPage() {
   const [segmentos, setSegmentos] = useState<{ id: string; nome: string; _count: { segmentContacts: number } }[]>([])
   const [envioImediato, setEnvioImediato] = useState(true)
 
+  // Carregar segmentos e pré-preencher template se templateId estiver na URL
   useEffect(() => {
     fetch("/api/segmentos")
       .then((r) => r.json())
       .then((d) => { if (d.success) setSegmentos(d.data) })
       .catch(() => {})
-  }, [])
+
+    const templateId = searchParams.get("templateId")
+    if (templateId) {
+      fetch(`/api/templates/${templateId}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success && d.data) {
+            const t = d.data
+            setForm((prev) => ({
+              ...prev,
+              assunto: t.assunto ?? prev.assunto,
+              preheader: t.preheader ?? prev.preheader,
+              conteudoHtml: t.corpo ?? prev.conteudoHtml,
+            }))
+          }
+        })
+        .catch(() => {})
+    }
+  }, [searchParams])
 
   function update(field: keyof FormData, value: unknown) {
     setForm((prev) => ({ ...prev, [field]: value }))
