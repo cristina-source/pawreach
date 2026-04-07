@@ -47,14 +47,14 @@ const TEMPLATE_INICIAL = `<!DOCTYPE html>
                 Escreve aqui o corpo do email. Personaliza com o nome do negócio, cidade, etc.
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.7;">
-                Sabia que a PetBiz tem tudo o que precisas para gerir o teu {{tipo_negocio}} em {{cidade}}?
+                Temos a solução perfeita para o teu {{tipo_negocio}} em {{cidade}}.
               </p>
 
               <!-- CTA -->
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background:#F97316;border-radius:8px;padding:12px 24px;">
-                    <a href="https://petbiz.pt" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">
+                    <a href="https://pawreach.pt" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">
                       Saber mais →
                     </a>
                   </td>

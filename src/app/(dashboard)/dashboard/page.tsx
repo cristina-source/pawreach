@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const now = new Date()
   const hour = now.getHours()
   const greeting = getGreeting(hour)
-  const firstName = session.user.name?.split(" ")[0] ?? "Cristina"
+  const firstName = session.user.name?.split(" ")[0] ?? session.user.email?.split("@")[0] ?? "Olá"
   const dataFormatada = format(now, "EEEE, d 'de' MMMM", { locale: pt })
   const dataCapitalizada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1)
 

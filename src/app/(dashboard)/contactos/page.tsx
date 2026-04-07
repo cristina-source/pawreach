@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { ContactFilters } from "@/components/contactos/contact-filters"
 import { ContactosTable } from "@/components/contactos/contactos-table"
 import Link from "next/link"
-import { Users, Flame, Snowflake, UserCheck } from "lucide-react"
+import { Users, Flame, Snowflake, UserCheck, Thermometer } from "lucide-react"
 import { Suspense } from "react"
 
 interface Props {
@@ -100,6 +100,7 @@ export default async function ContactosPage({ searchParams }: Props) {
         {[
           { label: "Total", value: totalContactos, icon: <Users size={16} />, color: "#3B82F6" },
           { label: "Leads quentes", value: statsByEstado["QUENTE"] ?? 0, icon: <Flame size={16} />, color: "#F97316" },
+          { label: "Leads mornos", value: statsByEstado["MORNO"] ?? 0, icon: <Thermometer size={16} />, color: "#F59E0B" },
           { label: "Leads frios", value: statsByEstado["FRIO"] ?? 0, icon: <Snowflake size={16} />, color: "#64748B" },
           { label: "Clientes", value: statsByEstado["CLIENTE"] ?? 0, icon: <UserCheck size={16} />, color: "#10B981" },
         ].map((stat) => (

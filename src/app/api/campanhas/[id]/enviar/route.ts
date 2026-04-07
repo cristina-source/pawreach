@@ -86,6 +86,24 @@ export async function POST(request: NextRequest, { params }: Params) {
   const appUrl = process.env.NEXTAUTH_URL ?? process.env.AUTH_URL ?? "http://localhost:3001"
   let enviados = 0
 
+  // Instanciar Resend uma única vez fora do loop
+  let resend: InstanceType<Awaited<typeof import("resend")>["Resend"]> | null = null
+  if (resendKey && resendKey !== "re_xxx" && resendKey !== "TODO") {
+    const { Resend } = await import("resend")
+    resend = new Resend(resendKey)
+  }
+
+  // Injector de preheader no HTML (hidden div antes do conteúdo visível)
+  function injectPreheader(html: string, preheader: string): string {
+    const preheaderHtml = `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#ffffff;opacity:0;">${preheader}</div>`
+    const bodyMatch = html.match(/<body[^>]*>/i)
+    if (bodyMatch && bodyMatch.index !== undefined) {
+      const insertAt = bodyMatch.index + bodyMatch[0].length
+      return html.slice(0, insertAt) + preheaderHtml + html.slice(insertAt)
+    }
+    return preheaderHtml + html
+  }
+
   for (const dest of destinatarios) {
     try {
       const unsubToken = Buffer.from(`${dest.id}:${userId}`).toString("base64")
@@ -94,21 +112,22 @@ export async function POST(request: NextRequest, { params }: Params) {
         Não queres receber mais emails? <a href="${unsubLink}" style="color:#94A3B8">Cancelar subscrição</a>
       </p>`
 
-      if (resendKey && resendKey !== "re_xxx" && resendKey !== "TODO") {
-        const { Resend } = await import("resend")
-        const resend = new Resend(resendKey)
-        const personalizedHtml = (campanha.conteudoHtml + unsubFooter)
+      if (resend) {
+        let personalizedHtml = (campanha.conteudoHtml + unsubFooter)
           .replace(/\{\{primeiro_nome\}\}/g, dest.nome.split(" ")[0])
           .replace(/\{\{nome\}\}/g, dest.nome)
           .replace(/\{\{tipo_negocio\}\}/g, dest.tipoNegocio ?? "")
           .replace(/\{\{cidade\}\}/g, dest.cidade ?? "")
+
+        if (campanha.preheader) {
+          personalizedHtml = injectPreheader(personalizedHtml, campanha.preheader)
+        }
 
         const result = await resend.emails.send({
           from: fromEmail,
           to: dest.email,
           subject: campanha.assunto,
           html: personalizedHtml,
-          ...(campanha.preheader ? { headers: { "X-PM-Preheader": campanha.preheader } } : {}),
         })
 
         await prisma.emailLog.create({
@@ -122,7 +141,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           },
         })
       } else {
-        // Simular envio
+        // Modo simulação (sem chave Resend válida)
         await prisma.emailLog.create({
           data: {
             userId,

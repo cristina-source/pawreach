@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Wand2, Copy, Save, ArrowRight, Clock } from "lucide-react"
@@ -81,6 +81,14 @@ export function AiCopyGenerator() {
   const [copiado, setCopiado] = useState(false)
   const [guardado, setGuardado] = useState(false)
 
+  // Carregar histórico do localStorage na montagem
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("pawreach_ia_historico")
+      if (saved) setHistorico(JSON.parse(saved))
+    } catch { /* ignorar erros de parse */ }
+  }, [])
+
   async function handleGerar() {
     setLoading(true)
     setError("")
@@ -101,16 +109,20 @@ export function AiCopyGenerator() {
       const data = await res.json()
       if (data.success) {
         setResultado(data.data)
-        setHistorico((prev) => [
-          {
-            tipo: tipoEmail,
-            negocio: tipoNegocio,
-            assunto: data.data.assunto,
-            gerado: data.data,
-            ts: Date.now(),
-          },
-          ...prev.slice(0, 4),
-        ])
+        setHistorico((prev) => {
+          const next = [
+            {
+              tipo: tipoEmail,
+              negocio: tipoNegocio,
+              assunto: data.data.assunto,
+              gerado: data.data,
+              ts: Date.now(),
+            },
+            ...prev.slice(0, 9),
+          ]
+          try { localStorage.setItem("pawreach_ia_historico", JSON.stringify(next)) } catch { /* quota exceeded */ }
+          return next
+        })
       } else {
         setError(data.error ?? "Erro ao gerar email.")
       }

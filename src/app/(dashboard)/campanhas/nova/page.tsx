@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -36,7 +36,15 @@ export default function NovaCampanhaPage() {
   const [loading, setLoading] = useState(false)
   const [segmentoOpcao, setSegmentoOpcao] = useState<"todos" | "segmento">("todos")
   const [segmentId, setSegmentId] = useState<string>("")
+  const [segmentos, setSegmentos] = useState<{ id: string; nome: string; _count: { segmentContacts: number } }[]>([])
   const [envioImediato, setEnvioImediato] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/segmentos")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setSegmentos(d.data) })
+      .catch(() => {})
+  }, [])
 
   function update(field: keyof FormData, value: unknown) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -51,6 +59,10 @@ export default function NovaCampanhaPage() {
     }
     if (step === 2) {
       if (!form.conteudoHtml || form.conteudoHtml.length < 10) newErrors.conteudoHtml = "Conteúdo obrigatório"
+    }
+    if (step === 3) {
+      if (!envioImediato && !form.agendadoPara) newErrors.agendadoPara = "Define uma data e hora de envio"
+      if (segmentoOpcao === "segmento" && !segmentId) newErrors.segmentId = "Selecciona um segmento"
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -289,16 +301,34 @@ export default function NovaCampanhaPage() {
             {segmentoOpcao === "segmento" && (
               <div>
                 <label htmlFor="camp-segment-id" className="block text-sm font-medium mb-1.5" style={{ color: "var(--app-text)" }}>
-                  ID do segmento
+                  Segmento
                 </label>
-                <input
-                  id="camp-segment-id"
-                  type="text"
-                  placeholder="Cole o ID do segmento"
-                  value={segmentId}
-                  onChange={(e) => setSegmentId(e.target.value)}
-                  style={inputStyle}
-                />
+                {segmentos.length === 0 ? (
+                  <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
+                    Sem segmentos criados.{" "}
+                    <a href="/contactos" style={{ color: "var(--app-orange)", textDecoration: "underline" }}>
+                      Cria um segmento
+                    </a>{" "}
+                    primeiro.
+                  </p>
+                ) : (
+                  <select
+                    id="camp-segment-id"
+                    value={segmentId}
+                    onChange={(e) => setSegmentId(e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">Selecciona um segmento...</option>
+                    {segmentos.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nome} ({s._count.segmentContacts} contacto{s._count.segmentContacts !== 1 ? "s" : ""})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {errors.segmentId && (
+                  <p className="text-xs mt-1" style={{ color: "var(--app-red)" }}>{errors.segmentId}</p>
+                )}
               </div>
             )}
           </div>
@@ -331,7 +361,7 @@ export default function NovaCampanhaPage() {
                 { label: "Assunto", value: form.assunto },
                 { label: "Pré-cabeçalho", value: form.preheader || "—" },
                 { label: "Teste A/B", value: form.testAbEnabled ? `Sim — assunto B: ${form.assuntoB || "não definido"}` : "Não" },
-                { label: "Destinatários", value: segmentoOpcao === "todos" ? "Todos os contactos" : `Segmento: ${segmentId || "não seleccionado"}` },
+                { label: "Destinatários", value: segmentoOpcao === "todos" ? "Todos os contactos" : segmentos.find((s) => s.id === segmentId)?.nome ? `Segmento: ${segmentos.find((s) => s.id === segmentId)!.nome}` : "Segmento não seleccionado" },
               ].map((row) => (
                 <div key={row.label} className="flex gap-4">
                   <span className="text-sm w-32 shrink-0" style={{ color: "var(--app-text-muted)" }}>
@@ -369,12 +399,17 @@ export default function NovaCampanhaPage() {
                 ))}
               </div>
               {!envioImediato && (
-                <input
-                  type="datetime-local"
-                  value={form.agendadoPara ?? ""}
-                  onChange={(e) => update("agendadoPara", e.target.value)}
-                  style={{ ...inputStyle, marginTop: "12px" }}
-                />
+                <div style={{ marginTop: "12px" }}>
+                  <input
+                    type="datetime-local"
+                    value={form.agendadoPara ?? ""}
+                    onChange={(e) => update("agendadoPara", e.target.value)}
+                    style={inputStyle}
+                  />
+                  {errors.agendadoPara && (
+                    <p className="text-xs mt-1" style={{ color: "var(--app-red)" }}>{errors.agendadoPara}</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -418,7 +453,9 @@ export default function NovaCampanhaPage() {
             <Button
               variant="primary"
               loading={loading}
-              onClick={() => handleSubmit(envioImediato)}
+              onClick={() => {
+                if (validateStep()) handleSubmit(envioImediato)
+              }}
             >
               <Send size={15} />
               {envioImediato ? "Enviar agora" : "Agendar envio"}
